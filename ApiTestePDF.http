@@ -1,0 +1,6 @@
+@ApiTestePDF_HostAddress = http://localhost:5261
+
+POST {{ApiTestePDF_HostAddress}}/pdfgeneration/post?htmlPDF=%3C%21DOCTYPE%20html%3E%3Chtml%3E%3Chead%3E%3Ctitle%3EPage%20Title%3C%2Ftitle%3E%3C%2Fhead%3E%3Cbody%3E%3Ch1%3EThis%20is%20a%20Heading%3C%2Fh1%3E%3Cp%3EThis%20is%20a%20paragraph.%3C%2Fp%3E%3C%2Fbody%3E%3C%2Fhtml%3E&othersPDFs=C%3A%5Ctemp%5C85727468-cfb6-4c67-8ae1-89b8c1102be4.pdf
+Accept: application/json
+
+###
