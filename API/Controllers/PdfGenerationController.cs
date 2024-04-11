@@ -4,13 +4,21 @@ using iTextSharp.tool.xml;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json;
+using Pdf;
 using System.Text;
 
 public class PdfGenerationController : ControllerBase
 {
+    private readonly PdfService _pdfService;
+
+    public PdfGenerationController(PdfService pdfService)
+    {
+        _pdfService = pdfService;
+    }
+
     [HttpPost]
     [Route("api/pdfgeneration/post")]
-    public async Task<IActionResult> GeneratePdfWithAttachments(string htmlPDF, string[] othersPDFs, string callBackUrl)
+    public IActionResult GeneratePdfWithAttachments(string htmlPDF, string[] othersPDFs, string callBackUrl)
     {
         try
         {
@@ -24,12 +32,12 @@ public class PdfGenerationController : ControllerBase
                 await Task.Delay(5000); // Simula uma operação demorada
 
                 // Gere o PDF a partir de um HTML
-                var pdfFile = GeneratePdfFromHtml(htmlPDF); // ("<h1>Exemplo de PDF gerado a partir de HTML</h1>");
+                var pdfFile = _pdfService.GeneratePdfFromHtml(htmlPDF); // ("<h1>Exemplo de PDF gerado a partir de HTML</h1>");
 
                 // Adicione outros PDFs
                 if (othersPDFs.Length > 0)
                 {
-                    pdfFile = AddPdfsToPdf(pdfFile, othersPDFs);
+                    pdfFile = _pdfService.AddPdfsToPdf(pdfFile, othersPDFs);
                 }
                 // Após a conclusão, notifique o cliente sobre o status atual
                 NotifyClient(requestId, "completed", callBackUrl, pdfFile);
@@ -53,53 +61,7 @@ public class PdfGenerationController : ControllerBase
         // Implemente a lógica para recuperar o status da geração do PDF com base no ID da solicitação
         // Por momento estamos retornando um status fixo
         return Ok(new { RequestId = requestId, Status = "completed" });
-    }
-
-    private byte[] GeneratePdfFromHtml(string htmlContent)
-    {
-        //Magia para converter HTML em PDF
-        using (MemoryStream ms = new MemoryStream())
-        {
-            Document document = new Document();
-            PdfWriter writer = PdfWriter.GetInstance(document, ms);
-            document.Open();
-            using (var sr = new StringReader(htmlContent))
-            {
-                XMLWorkerHelper.GetInstance().ParseXHtml(writer, document, sr);
-            }
-            document.Close();
-
-            // Retorna o conteúdo do MemoryStream como um array de bytes
-            return ms.ToArray();
-        }
-    }
-
-    private byte[] AddPdfsToPdf(byte[] basePdf, string[] pdfPathsToAdd)
-    {
-        var reader = new PdfReader(basePdf);
-        using (var outputStream = new MemoryStream())
-        {
-            var stamper = new PdfStamper(reader, outputStream);
-            int totalPages = reader.NumberOfPages;
-            //Itera sobre os PDFs a serem adicionados
-            foreach (var pdfPath in pdfPathsToAdd)
-            {
-                var pdfReader = new PdfReader(pdfPath);
-                //para cada página do PDF a ser adicionado, insira uma nova página no PDF base a partir da ultima página (totalPages)
-                for (var i = 1; i <= pdfReader.NumberOfPages; i++)
-                {
-                    totalPages++;
-                    stamper.InsertPage(totalPages, pdfReader.GetPageSizeWithRotation(i));
-                    var pdfContentByte = stamper.GetUnderContent(totalPages);
-                    var importedPage = stamper.GetImportedPage(pdfReader, i);
-                    pdfContentByte.AddTemplate(importedPage, 0, 0);
-                }
-            }
-            stamper.Close();
-            reader.Close();
-            return outputStream.ToArray();
-        }
-    }
+    }    
 
     private void NotifyClient(string requestId, string status, string callbackUrl, byte[] payload)
     {
